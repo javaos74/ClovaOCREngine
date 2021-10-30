@@ -28,6 +28,9 @@ namespace ClovaOCRActivities
             builder.AddCustomAttributes(typeof(ClovaOCREngine), ocrCategoryAttribute);
             builder.AddCustomAttributes(typeof(ClovaOCREngine), nameof(ClovaOCREngine.Result), new CategoryAttribute("Output"));
 
+            builder.AddCustomAttributes(typeof(TextPDFEngine), ocrCategoryAttribute);
+            builder.AddCustomAttributes(typeof(TextPDFEngine), nameof(TextPDFEngine.Result), new CategoryAttribute("Output"));
+
             MetadataStore.AddAttributeTable(builder.CreateTable());
         }
     }

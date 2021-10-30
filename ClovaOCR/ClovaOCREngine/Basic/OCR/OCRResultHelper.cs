@@ -11,6 +11,7 @@ using System.Text;
 using System.Threading.Tasks;
 using UiPath.OCR.Contracts.DataContracts;
 using UiPath.OCR.Contracts;
+using BitMiracle.Docotic.Pdf;
 
 namespace ClovaOCRActivities.Basic.OCR
 {
@@ -156,6 +157,71 @@ namespace ClovaOCRActivities.Basic.OCR
                 return new[] { new PointF(x + dx * idx, y), new PointF(x + dx * (idx + 1), y), new PointF(x + dx * (idx + 1), y2), new PointF(x + dx * idx, y2) };
 
         }
+
+        internal static async Task<OCRResult> FromTextPdf( Dictionary<string, object> options)
+        {
+            OCRResult ocrResult = new OCRResult();
+
+            float ratio = 0.0f;
+            using (var pdf = new PdfDocument( options["pdffilepath"].ToString()))
+            {
+                var textopt = new PdfTextExtractionOptions
+                {
+                    SkipInvisibleText = false,
+                    WithFormatting = false
+                };
+                string fulltext = pdf.GetText(textopt);
+                PdfPage page = pdf.Pages[0];
+                ratio = (float)( Convert.ToInt32(options["width"]) / page.Width);
+#if DEBUG
+                Console.WriteLine($"image ratio={ratio} >> image.Width={options["width"]}, image.Height={options["height"]}, resolution={options["resolution"]} ||| page.Width={page.Width}, page.Height={page.Height}, page.resolution={page.Resolution}");
+#endif
+
+                ocrResult.Words = page.GetWords().Select(w => new Word
+                {
+                    Text = w.GetText(),
+                    Confidence = 100,
+                    PolygonPoints = new[] { new PointF( (float) (w.Position.X*ratio), (float)(w.Position.Y*ratio)),
+                                            new PointF( (float) ((w.Position.X + w.Size.Width)*ratio), (float)(w.Position.Y*ratio)),
+                                            new PointF( (float) ((w.Position.X + w.Size.Width)*ratio), (float)((w.Position.Y + w.Size.Height)*ratio)),
+                                            new PointF( (float) (w.Position.X*ratio), (float)((w.Position.Y + w.Size.Height)*ratio)) },
+                    Characters = w.GetText().Select(ch => new Character
+                    {
+                        Char = ch,
+                        Confidence =100
+                    }).ToArray()
+                }).ToArray();
+
+                options["fulltext"] = fulltext;
+
+            }
+            foreach (var word in ocrResult.Words)
+            {
+                var x = word.PolygonPoints[0].X;
+                var y = word.PolygonPoints[0].Y;
+                var w = Math.Abs(word.PolygonPoints[1].X - x);
+                var y2 = word.PolygonPoints[3].Y;
+
+                float dx = w / word.Characters.Length;
+                float dy = Math.Abs(y2 - y) / word.Characters.Length;
+                int idx = 0;
+#if DEBUG
+                //System.Console.WriteLine(string.Format("{0} has {1} characters", word.Text, string.Join(",", word.PolygonPoints)));
+#endif
+                foreach (var c in word.Characters)
+                {
+                    c.PolygonPoints = new[] { new PointF( (x + dx * idx)*1, y*1), 
+                                            new PointF((x + dx * (idx + 1))*1, y *1), 
+                                            new PointF((x + dx * (idx + 1))*1, y2 * 1), 
+                                            new PointF((x + dx * idx)*1, y2*1) };
+                    c.Confidence = word.Confidence;
+                    idx++;
+                }
+            }
+
+            return ocrResult;
+        }
+
 
     }
 }

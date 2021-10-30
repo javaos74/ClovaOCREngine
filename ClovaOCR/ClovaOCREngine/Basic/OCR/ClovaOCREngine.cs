@@ -64,7 +64,7 @@ namespace ClovaOCRActivities.Basic.OCR
             System.Console.WriteLine("temp file path " + file_path);
 #endif
 
-            var result =  OCRResultHelper.FromClovaClient(file_path, options);
+            var result =   OCRResultHelper.FromClovaClient(file_path, options);
 
             return result;
         }
