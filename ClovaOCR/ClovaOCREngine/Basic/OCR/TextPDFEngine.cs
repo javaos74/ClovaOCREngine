@@ -49,7 +49,7 @@ namespace ClovaOCRActivities.Basic.OCR
         protected override void OnSuccess(CodeActivityContext context, OCRResult result)
         {
 
-;       }
+        }
         //protected override void on
 
         protected override Dictionary<string, object> BeforeExecute(CodeActivityContext context)
