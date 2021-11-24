@@ -18,18 +18,18 @@ namespace ClovaOCRActivities.Basic.OCR
 {
     internal static class READOCRResultHelper
     {
-        internal static  UiPath.OCR.Contracts.OCRRotation GetOCRRotation( Single rot)
+        internal static UiPath.OCR.Contracts.OCRRotation GetOCRRotation(Single rot)
         {
- #if DEBUG
+#if DEBUG
             System.Console.WriteLine(" roation : " + rot);
- #endif
-            if ( rot >= 88 && rot <= 92)
+#endif
+            if (rot >= 88 && rot <= 92)
                 return OCRRotation.Rotated90;
-            else if ( rot >= 178 && rot <= 182)
+            else if (rot >= 178 && rot <= 182)
                 return OCRRotation.Rotated180;
-            else if( rot >= 268 && rot <= 272)
+            else if (rot >= 268 && rot <= 272)
                 return OCRRotation.Rotated270;
-            else if ( rot >= 358 || rot <= 2)
+            else if (rot >= 358 || rot <= 2)
                 return OCRRotation.None;
             else
                 return OCRRotation.Other;
@@ -42,7 +42,7 @@ namespace ClovaOCRActivities.Basic.OCR
             client.DefaultRequestHeaders.Accept.Clear();
             //client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/octet-stream"));
 
-            var filebytes = File.ReadAllBytes( file_path);
+            var filebytes = File.ReadAllBytes(file_path);
             var endpoint = options["endpoint"].ToString().EndsWith("/") ? options["endpoint"].ToString() + "vision/v3.2/read/syncAnalyze" : options["endpoint"].ToString() + "/vision/v3.2/read/syncAnalyze";
             if (!string.IsNullOrEmpty(options["lang"].ToString()))
                 endpoint += "?language=" + options["lang"].ToString();
@@ -67,32 +67,98 @@ namespace ClovaOCRActivities.Basic.OCR
                 ocrResult.Words = lines.Select(p => new Word
                 {
                     Text = (string)p["text"],
-                    Characters = ((JArray)p["words"]).Select(ch => new Character
-                    {
-                        Char = (Char)ch["text"].ToString().ElementAt(0),
-                        Confidence = (int) ((float)ch["confidence"] * 100),
-                        PolygonPoints = genboxes( (JArray) p["boundingBox"])
-                    }).ToArray()
+                    PolygonPoints = GenBoundingBox((JArray)p["boundingBox"]),
+                    Characters = GetCharacters( (JArray)p["words"])
                 }).ToArray();
                 foreach (var l in lines)
                 {
                     sb.Append((string)l["text"]);
-                    sb.Append(((Boolean)l["text"]) ? Environment.NewLine : " ");
+                    //sb.Append(((Boolean)l["text"].ToString()) ? Environment.NewLine : " ");
                 }
                 ocrResult.Text = sb.ToString();
-                ocrResult.SkewAngle = (int)respJson["angle"];
+                ocrResult.SkewAngle = (int)respJson["analyzeResult"]["readResults"][0]["angle"];
                 ocrResult.Confidence = 0;
             }
             return ocrResult;
         }
 
-        internal static PointF[] genboxes(JArray points)
+        internal static Character[] GetCharacters(JArray words)
+        {
+            var listChars = new List<Character>();
+            try
+            {
+                foreach (var word in words)
+                {
+                    var text = (string)word["text"];
+#if DEBUG
+                    //Console.WriteLine(" current words: " + text);
+#endif
+                    if (text.Length == 1)
+                    {
+                        listChars.Add(new Character
+                        {
+                            Char = text.ElementAt(0),
+                            Confidence = Convert.ToInt32((float)word["confidence"] * 100),
+                            PolygonPoints = GenBoundingBox((JArray)word["boundingBox"])
+                        });
+                    }
+                    else
+                    {
+                        var idx = 0;
+                        PointF[] points = GenBoundingBox((JArray)word["boundingBox"]);
+                        foreach (var ch in text)
+                        {
+                            listChars.Add(new Character
+                            {
+                                Char = ch,
+                                Confidence = Convert.ToInt32((float)word["confidence"] * 100),
+                                PolygonPoints = ReduceBoundingBox(points, idx, text.Length)
+                            });
+                            idx++;
+#if false
+                            if ( text == "01116000220589200345170A091C130")
+                            {
+                                Console.WriteLine(" char " + Char.ToString(ch));
+                            }
+#endif
+                        }
+                    }
+                }
+            } catch (Exception e)
+            {
+#if DEBUG
+                Console.WriteLine(e.StackTrace);
+#endif
+            }
+
+            return listChars.ToArray();
+        }
+        internal static int GetAverageConfidence(JArray words)
+        {
+            return Convert.ToInt32(words.Average(p => (float)p["confidence"]) * 100);
+        }
+        internal static PointF[] GenBoundingBox(JArray points)
         {
             return new[] { new PointF(Convert.ToSingle(points.ElementAt(0).ToString()), Convert.ToSingle(points.ElementAt(1).ToString())),
                           new PointF(Convert.ToSingle(points.ElementAt(2).ToString()), Convert.ToSingle(points.ElementAt(3).ToString())),
                           new PointF(Convert.ToSingle(points.ElementAt(4).ToString()), Convert.ToSingle(points.ElementAt(5).ToString())),
                           new PointF(Convert.ToSingle(points.ElementAt(6).ToString()), Convert.ToSingle(points.ElementAt(7).ToString()))
                 };
+        }
+
+        internal static PointF[] ReduceBoundingBox(PointF [] points, int idx, int total)
+        {
+            var x = points[0].X;
+            var y = points[0].Y;
+            var w = Math.Abs(points[1].X - x);
+            var y2 = points[3].Y;
+
+            float dx = w / total;
+            float dy = Math.Abs(y2 - y) / total;
+
+            return new[] {
+               new PointF(x + dx * idx, y), new PointF(x + dx * (idx + 1), y), new PointF(x + dx * (idx + 1), y2), new PointF(x + dx * idx, y2) 
+            };
         }
     }
 }

@@ -75,12 +75,6 @@
   <ItemGroup>
     <None Include="packages.config" />
   </ItemGroup>
-  <ItemGroup>
-    <XamlAppDef Include="Activity1.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </XamlAppDef>
-  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>if exist $(TargetDir)\..\Packages\ClovaOCRActivities*.* del $(TargetDir)\..\Packages\ClovaOCRActivities*.*
