@@ -17,7 +17,7 @@ namespace ClovaOCRActivities
             //Categories
 //            var classifierCategoryAttribute = new CategoryAttribute("Synap Classifiers");
 //            var extractorCategoryAttribute = new CategoryAttribute("Synap Extractors");
-            var ocrCategoryAttribute = new CategoryAttribute("ClovaAI");
+            var ocrCategoryAttribute = new CategoryAttribute("CustomOCR");
 
  //           builder.AddCustomAttributes(typeof(SimpleClassifier), classifierCategoryAttribute);
  //           builder.AddCustomAttributes(typeof(SimpleClassifier), simpleClassifierDesigner);
