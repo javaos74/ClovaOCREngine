@@ -4,28 +4,41 @@ using System.ComponentModel;
 using System.Drawing;
 using System.Threading;
 using System.Threading.Tasks;
+using UiPath.OCR.Contracts;
 using UiPath.OCR.Contracts.Activities;
 using UiPath.OCR.Contracts.DataContracts;
 
 namespace ClovaOCRActivities.Basic.OCR
 {
-    [DisplayName("Text PDF Engine")]
-    public class TextPDFEngine : OCRCodeActivity
+    [DisplayName("READ OCR Engine")]
+    public class READOCR : OCRCodeActivity
     {
         [Category("Input")]
         [Browsable(true)]
         public override InArgument<Image> Image { get => base.Image; set => base.Image = value; }
 
-
         [Category("Input")]
         [RequiredArgument]
-        [Description("Pdf file path ")]
-        public InArgument<string> PdfFilePath { get; set; }
+        [Description("READ endpoint 정보")]
+        public InArgument<string> Endpoint { get; set; }
+
+        [Browsable(false)]
+        [Category("Login")]
+        [Description("READ ApiKey")]
+        public InArgument<string> Secret { get; set; }
+
+        [Category("Option")]
+        [Browsable(true)]
+        [Description("설정 가능한 언어값은 ko ja zh-TW 중 하나를 선택")]
+        public InArgument<string> Languages { get; set; } = "ko";
 
 
         [Category("Output")]
         [Browsable(true)]
         public override OutArgument<string> Text { get => base.Text; set => base.Text = value; }
+
+
+        private string file_path;
 
 
         /**
@@ -34,13 +47,26 @@ namespace ClovaOCRActivities.Basic.OCR
          */
         public override Task<OCRResult> PerformOCRAsync(Image image, Dictionary<string, object> options, CancellationToken ct)
         {
-            options["width"] = image.Width;
-            options["height"] = image.Height;
-            options["resolution"] = image.HorizontalResolution;
-#if false
-            var result =  OCRResultHelper.FromTextPdf(options);
+
+            file_path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "read_ocr_req_image.png");
+            if( image != null ) {
+                if (System.IO.File.Exists(file_path))
+                    System.IO.File.Delete(file_path);
+#if DEBUG
+                System.Console.WriteLine($"width={image.Width}, height={image.Height} resolution={image.HorizontalResolution} ");
 #endif
-            return null;
+                image.Save(file_path, System.Drawing.Imaging.ImageFormat.Png);
+            } else
+            {
+                file_path = string.Empty;
+            }
+ #if DEBUG
+            System.Console.WriteLine("temp file path " + file_path);
+#endif
+
+            var result =   READOCRResultHelper.FromClient(file_path, options);
+
+            return result;
         }
 
         /**
@@ -49,14 +75,15 @@ namespace ClovaOCRActivities.Basic.OCR
         protected override void OnSuccess(CodeActivityContext context, OCRResult result)
         {
 
-        }
+;       }
         //protected override void on
 
         protected override Dictionary<string, object> BeforeExecute(CodeActivityContext context)
         {
             return new Dictionary<string, object>
             {
-                { "pdffilepath",  PdfFilePath.Get(context) }
+                { "endpoint",  Endpoint.Get(context) },
+                { "lang", Languages.Get(context) }
             };
         }
     }

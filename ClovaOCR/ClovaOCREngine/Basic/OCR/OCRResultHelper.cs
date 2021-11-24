@@ -157,11 +157,10 @@ namespace ClovaOCRActivities.Basic.OCR
                 return new[] { new PointF(x + dx * idx, y), new PointF(x + dx * (idx + 1), y), new PointF(x + dx * (idx + 1), y2), new PointF(x + dx * idx, y2) };
 
         }
-
+#if false
         internal static async Task<OCRResult> FromTextPdf( Dictionary<string, object> options)
         {
             OCRResult ocrResult = new OCRResult();
-
             float ratio = 0.0f;
             using (var pdf = new PdfDocument( options["pdffilepath"].ToString()))
             {
@@ -221,7 +220,7 @@ namespace ClovaOCRActivities.Basic.OCR
 
             return ocrResult;
         }
+#endif
 
-
-    }
+}
 }

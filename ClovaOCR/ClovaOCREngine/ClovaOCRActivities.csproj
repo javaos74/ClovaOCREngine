@@ -44,6 +44,8 @@
     <Reference Include="System.Activities.Presentation" />
     <Reference Include="System.Core" />
     <Reference Include="System.Drawing" />
+    <Reference Include="System.ServiceModel" />
+    <Reference Include="System.ServiceModel.Activities" />
     <Reference Include="System.Xaml" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
@@ -60,6 +62,8 @@
     <Reference Include="WindowsBase" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Basic\OCR\READOCR.cs" />
+    <Compile Include="Basic\OCR\READOCRResultHelper.cs" />
     <Compile Include="Basic\OCR\TextPDFEngine.cs" />
     <Compile Include="Basic\OCR\OCRResultHelper.cs" />
     <Compile Include="Basic\OCR\ClovaOCREngine.cs" />
@@ -71,7 +75,12 @@
   <ItemGroup>
     <None Include="packages.config" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <XamlAppDef Include="Activity1.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </XamlAppDef>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>if exist $(TargetDir)\..\Packages\ClovaOCRActivities*.* del $(TargetDir)\..\Packages\ClovaOCRActivities*.*
