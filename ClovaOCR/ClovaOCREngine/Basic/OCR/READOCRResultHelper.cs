@@ -64,22 +64,71 @@ namespace ClovaOCRActivities.Basic.OCR
                 StringBuilder sb = new StringBuilder();
                 JObject respJson = JObject.Parse(body);
                 JArray lines = (JArray)respJson["analyzeResult"]["readResults"][0]["lines"];
-                ocrResult.Words = lines.Select(p => new Word
+                List<JObject> words = new List<JObject>();
+
+                foreach( var l in lines)
+                {
+                    var ws = (JArray)l["words"];
+                    foreach (var w in ws)
+                        words.Add((JObject)w);
+                    sb.Append((string)l["text"]);
+                }
+
+                ocrResult.Words = words.Select(p => new Word
                 {
                     Text = (string)p["text"],
                     PolygonPoints = GenBoundingBox((JArray)p["boundingBox"]),
-                    Characters = GetCharacters( (JArray)p["words"])
+                    Confidence = Convert.ToInt32((float)p["confidence"] * 100),
+                    Characters = GetCharacters( (string)p["text"], Convert.ToInt32((float)p["confidence"] * 100), GenBoundingBox((JArray)p["boundingBox"]))
                 }).ToArray();
-                foreach (var l in lines)
-                {
-                    sb.Append((string)l["text"]);
-                    //sb.Append(((Boolean)l["text"].ToString()) ? Environment.NewLine : " ");
-                }
+
                 ocrResult.Text = sb.ToString();
                 ocrResult.SkewAngle = (int)respJson["analyzeResult"]["readResults"][0]["angle"];
                 ocrResult.Confidence = 0;
             }
             return ocrResult;
+        }
+
+        internal static Character[] GetCharacters( string text, int confidence, PointF[] points)
+        {
+#if DEBUG
+            Console.WriteLine(text + "/" + confidence.ToString());
+#endif
+            var listChars = new List<Character>();
+            try
+            {
+                if( text.Length == 1)
+                {
+                    listChars.Add(new Character
+                    {
+                        Char = text.ElementAt(0),
+                        Confidence = confidence,
+                        PolygonPoints = points
+                    });
+                }
+                else
+                {
+                    var idx = 0;
+                    foreach( var ch in text)
+                    {
+                        listChars.Add(new Character
+                        {
+                            Char = ch,
+                            Confidence = confidence,
+                            PolygonPoints = ReduceBoundingBox(points, idx, text.Length)
+                        });
+                        idx++;
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+#if DEBUG
+                Console.WriteLine(e.StackTrace);
+#endif
+            }
+
+            return listChars.ToArray();
         }
 
         internal static Character[] GetCharacters(JArray words)
@@ -115,12 +164,6 @@ namespace ClovaOCRActivities.Basic.OCR
                                 PolygonPoints = ReduceBoundingBox(points, idx, text.Length)
                             });
                             idx++;
-#if false
-                            if ( text == "01116000220589200345170A091C130")
-                            {
-                                Console.WriteLine(" char " + Char.ToString(ch));
-                            }
-#endif
                         }
                     }
                 }
